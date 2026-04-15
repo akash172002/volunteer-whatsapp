@@ -63,6 +63,31 @@ class WhatsAppService {
    */
   async createGroup(subject, participants = []) {
     const res = await this._client.post('/groups', { subject, participants });
+    const group = res.data;
+
+    // Free-plan limitation: Whapi may not apply the subject on creation.
+    // If the returned subject is missing or equals the raw JID, patch it now.
+    if (group.id && (!group.subject || group.subject === group.id)) {
+      try {
+        await this._client.put(`/groups/${group.id}`, { subject });
+        group.subject = subject;
+      } catch (_) {
+        // Best-effort — not a hard failure
+        group.subject = subject; // at least keep it in memory for this response
+      }
+    }
+
+    return group;
+  }
+
+  /**
+   * Update group settings (subject, description, etc.)
+   * @param {string} groupId
+   * @param {object} fields  - e.g. { subject: 'New Name' }
+   * @returns {Promise<object>}
+   */
+  async updateGroup(groupId, fields = {}) {
+    const res = await this._client.put(`/groups/${groupId}`, fields);
     return res.data;
   }
 
