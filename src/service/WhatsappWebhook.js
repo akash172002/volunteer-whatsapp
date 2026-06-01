@@ -82,7 +82,11 @@ function whatsappWebhook(req, res) {
         webhookEvents.emit('group:message', normaliseMessage(msg));
       }
 
-      if (isGroup && msg.from_me) {
+      if (!isGroup && isIncoming) {
+        webhookEvents.emit('dm:message', normaliseMessage(msg));
+      }
+
+      if (msg.from_me) {
         webhookEvents.emit('message:sent', normaliseMessage(msg));
       }
     }
