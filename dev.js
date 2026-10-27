@@ -62,6 +62,9 @@ async function getNgrokUrl(retries = 15, delayMs = 800) {
         events: [
           { type: 'messages', method: 'post' },
           { type: 'messages', method: 'patch' },
+          { type: 'groups', method: 'post' },
+          { type: 'groups', method: 'put' },
+          { type: 'groups', method: 'patch' },
         ],
       }],
     });

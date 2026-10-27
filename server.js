@@ -74,6 +74,20 @@ app.get('/api/groups/:id', async (req, res) => {
   }
 });
 
+// PUT /api/groups/:id — rename a group
+// Body: { name: string }
+app.put('/api/groups/:id', async (req, res) => {
+  try {
+    const { name } = req.body;
+    if (!name) return res.status(400).json({ error: 'name is required' });
+    // Whapi takes the new name as `subject`; a `name` field is accepted but ignored.
+    const result = await wa.updateGroup(req.params.id, { subject: name });
+    res.json({ success: true, result });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // POST /api/groups/:id/members — add member(s) to a group
 // Body: { participants: string[] }
 app.post('/api/groups/:id/members', async (req, res) => {
@@ -160,6 +174,16 @@ webhookEvents.on('message:sent', (message) => {
 webhookEvents.on('message:status', (update) => {
   console.log(`[WhatsApp] ✓ ${update.messageId?.slice(-16)} → ${update.status}`);
   io.emit('message:status', update);
+});
+
+webhookEvents.on('group:members', (update) => {
+  console.log(`[WhatsApp] members ${update.action} in ${update.groupId}:`, update.participants.join(', '));
+  io.emit('group:members', update);
+});
+
+webhookEvents.on('group:renamed', (update) => {
+  console.log(`[WhatsApp] group renamed ${update.groupId}: "${update.oldName}" → "${update.newName}"`);
+  io.emit('group:renamed', update);
 });
 
 webhookEvents.on('message:reaction', (update) => {

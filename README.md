@@ -86,6 +86,8 @@ app.post('/webhook', whatsappWebhook);
 | `message:sent` | Outgoing message confirmed by Whapi | same shape as above |
 | `message:status` | Delivery/read status update | `{ messageId, status, groupId }` |
 | `message:reaction` | Emoji reaction added/changed | `{ messageId, reactions, groupId }` |
+| `group:members` | Members added, removed, promoted or demoted (`groups.put`) | `{ groupId, action, participants[], performedBy }` |
+| `group:renamed` | Group name changed (`groups.patch`) | `{ groupId, oldName, newName }` |
 | `*` | Every event (for debugging) | `(eventType, body)` |
 
 ### Example
@@ -173,6 +175,7 @@ All endpoints are defined inline in `server.js`.
 | `GET` | `/api/groups` | — | List all groups |
 | `POST` | `/api/groups` | `{ name, participants[] }` | Create a group |
 | `GET` | `/api/groups/:id` | — | Get group details |
+| `PUT` | `/api/groups/:id` | `{ name }` | Rename a group |
 | `POST` | `/api/groups/:id/members` | `{ participants[] }` | Add member(s) |
 | `DELETE` | `/api/groups/:id/members` | `{ participants[] }` | Remove member(s) |
 | `GET` | `/api/groups/:id/messages` | — | Fetch message history |
@@ -203,6 +206,27 @@ The server broadcasts these events to all connected frontend clients:
 | `message:sent` | `{ groupId, message }` — outgoing message confirmed |
 | `message:status` | `{ messageId, status, groupId }` — delivery update |
 | `message:reaction` | `{ messageId, reactions, groupId }` — reaction update |
+| `group:members` | `{ groupId, action, participants[], performedBy }` — someone was added, removed, promoted or demoted |
+| `group:renamed` | `{ groupId, oldName, newName }` — the group was renamed |
+
+---
+
+## Testing
+
+```bash
+npm test            # offline: no token, no network (request shapes and webhook handling)
+npm run test:live   # live: needs WHAPI_TOKEN, WHAPI_TEST_NUMBER and the server running (npm start)
+```
+
+`test:live` runs against the real Whapi channel through this server's own REST API. It creates one new
+group that contains only `WHAPI_TEST_NUMBER` (a second number, international format, no `+`) and sends a few
+messages to it. Leave the group from WhatsApp afterwards.
+
+Notes on Whapi behaviour the tests cover:
+- A group needs at least one member besides the channel's own number.
+- Message history and delivery status use `GET /messages/list/{chatId}`. The `?chat_id=` form returns
+  messages from other chats and fails with a 500 when `sort=asc`.
+- `POST /messages/text` returns `{ sent, message: { id } }`; `sendText` also exposes the id as `result.id`.
 
 ---
 
