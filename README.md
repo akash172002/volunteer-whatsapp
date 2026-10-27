@@ -206,6 +206,25 @@ The server broadcasts these events to all connected frontend clients:
 
 ---
 
+## Testing
+
+```bash
+npm test            # offline: no token, no network (request shapes and webhook handling)
+npm run test:live   # live: needs WHAPI_TOKEN, WHAPI_TEST_NUMBER and the server running (npm start)
+```
+
+`test:live` runs against the real Whapi channel through this server's own REST API. It creates one new
+group that contains only `WHAPI_TEST_NUMBER` (a second number, international format, no `+`) and sends a few
+messages to it. Leave the group from WhatsApp afterwards.
+
+Notes on Whapi behaviour the tests cover:
+- A group needs at least one member besides the channel's own number.
+- Message history and delivery status use `GET /messages/list/{chatId}`. The `?chat_id=` form returns
+  messages from other chats and fails with a 500 when `sort=asc`.
+- `POST /messages/text` returns `{ sent, message: { id } }`; `sendText` also exposes the id as `result.id`.
+
+---
+
 ## Project Structure
 
 ```

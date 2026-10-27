@@ -130,7 +130,8 @@ class WhatsAppService {
     if (options.quotedId) payload.quoted = options.quotedId;
     if (options.typingTime) payload.typing_time = options.typingTime;
     const res = await this._client.post('/messages/text', payload);
-    return res.data;
+    // Whapi answers { sent, message: { id, ... } }; expose the id at the top level, as documented.
+    return { ...res.data, id: res.data?.message?.id };
   }
 
   /**
@@ -184,10 +185,12 @@ class WhatsAppService {
   async getMessages(chatId, options = {}) {
     const { count = 50, offset = 0, sort = 'asc', fromMe } = options;
 
-    const params = { chat_id: chatId, count, offset, sort };
+    // The chat id goes in the path. With ?chat_id= Whapi ignores the filter and returns messages
+    // from other chats too, and answers 500 when sort=asc.
+    const params = { count, offset, sort };
     if (fromMe !== undefined) params.from_me = fromMe;
 
-    const res = await this._client.get('/messages/list', { params });
+    const res = await this._client.get(`/messages/list/${encodeURIComponent(chatId)}`, { params });
     const raw = res.data?.messages || res.data?.items || [];
 
     return raw.map((m) => ({
@@ -217,8 +220,8 @@ class WhatsAppService {
    * @returns {Promise<Array<{id: string, status: string, timestamp: number}>>}
    */
   async getMessageStatuses(chatId, count = 20) {
-    const res = await this._client.get('/messages/list', {
-      params: { chat_id: chatId, count },
+    const res = await this._client.get(`/messages/list/${encodeURIComponent(chatId)}`, {
+      params: { count },
     });
     const messages = res.data?.messages || res.data?.items || [];
     return messages.map((m) => ({ id: m.id, status: m.status, timestamp: m.timestamp }));
