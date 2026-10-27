@@ -269,6 +269,8 @@ class WhatsAppService {
     for (const type of eventTypes) {
       events.push({ type, method: 'post' });
       events.push({ type, method: 'patch' });
+      // Member changes (add / remove / promote / demote) arrive as groups.put
+      if (type === 'groups') events.push({ type, method: 'put' });
     }
     const res = await this._client.patch('/settings', {
       webhooks: [{ url: webhookUrl, mode: 'body', events }],

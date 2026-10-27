@@ -86,6 +86,8 @@ app.post('/webhook', whatsappWebhook);
 | `message:sent` | Outgoing message confirmed by Whapi | same shape as above |
 | `message:status` | Delivery/read status update | `{ messageId, status, groupId }` |
 | `message:reaction` | Emoji reaction added/changed | `{ messageId, reactions, groupId }` |
+| `group:members` | Members added, removed, promoted or demoted (`groups.put`) | `{ groupId, action, participants[], performedBy }` |
+| `group:renamed` | Group name changed (`groups.patch`) | `{ groupId, oldName, newName }` |
 | `*` | Every event (for debugging) | `(eventType, body)` |
 
 ### Example
@@ -173,6 +175,7 @@ All endpoints are defined inline in `server.js`.
 | `GET` | `/api/groups` | — | List all groups |
 | `POST` | `/api/groups` | `{ name, participants[] }` | Create a group |
 | `GET` | `/api/groups/:id` | — | Get group details |
+| `PUT` | `/api/groups/:id` | `{ name }` | Rename a group |
 | `POST` | `/api/groups/:id/members` | `{ participants[] }` | Add member(s) |
 | `DELETE` | `/api/groups/:id/members` | `{ participants[] }` | Remove member(s) |
 | `GET` | `/api/groups/:id/messages` | — | Fetch message history |
@@ -203,6 +206,8 @@ The server broadcasts these events to all connected frontend clients:
 | `message:sent` | `{ groupId, message }` — outgoing message confirmed |
 | `message:status` | `{ messageId, status, groupId }` — delivery update |
 | `message:reaction` | `{ messageId, reactions, groupId }` — reaction update |
+| `group:members` | `{ groupId, action, participants[], performedBy }` — someone was added, removed, promoted or demoted |
+| `group:renamed` | `{ groupId, oldName, newName }` — the group was renamed |
 
 ---
 

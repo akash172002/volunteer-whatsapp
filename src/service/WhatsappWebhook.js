@@ -16,6 +16,9 @@
  *     console.log(`[${message.groupId}] ${message.fromName}: ${message.text}`);
  *   });
  *
+ *   // Someone joined, was removed, promoted or demoted
+ *   webhookEvents.on('group:members', ({ groupId, action, participants }) => {});
+ *
  *   // Status update (delivered / read)
  *   webhookEvents.on('message:status', (update) => {
  *     console.log(`Message ${update.messageId} → ${update.status}`);
@@ -113,6 +116,34 @@ function whatsappWebhook(req, res) {
           messageId: u.id,
           reactions,
           groupId:   after.chat_id,
+        });
+      }
+    }
+  }
+
+  // ── Group members changed (groups.put) ───────────────────────────────────
+  // Whapi: { groups_participants: [{ group_id, participants: [id...], action, performed_by? }] }
+  // action: add | remove | promote | demote | request. A join through an invite link is an
+  // `add` with performed_by 'link'. Whapi does not document a separate "leave" action.
+  if (eventType === 'groups.put') {
+    for (const u of body.groups_participants || []) {
+      webhookEvents.emit('group:members', {
+        groupId:      u.group_id,
+        action:       u.action,
+        participants: (u.participants || []).map((id) => String(id).split('@')[0]),
+        performedBy:  u.performed_by || null,
+      });
+    }
+  }
+
+  // ── Group updated (groups.patch): emit a rename when the name changed ─────
+  if (eventType === 'groups.patch') {
+    for (const u of body.groups_updates || []) {
+      if ((u.changes || []).includes('name')) {
+        webhookEvents.emit('group:renamed', {
+          groupId: u.after_update?.id || u.before_update?.id,
+          oldName: u.before_update?.name ?? null,
+          newName: u.after_update?.name ?? null,
         });
       }
     }

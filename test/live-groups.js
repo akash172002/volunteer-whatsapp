@@ -35,6 +35,13 @@ const must = (cond, msg) => { if (!cond) throw new Error(msg); };
   await check('open group shows both members', async () => { const ids = await memberIds(); must(ids.length === 2 && ids.some((i) => i.startsWith(OTHER)), 'members: ' + ids.join(',')); return ids.length + ' members'; });
   await check('remove the test number', async () => { const r = await call('DELETE', `/api/groups/${encodeURIComponent(gid)}/members`, { participants: [OTHER] }); must(r.data.success, JSON.stringify(r.data)); await pause(2000); must(!(await memberIds()).some((i) => i.startsWith(OTHER)), 'still a member'); });
   await check('add the test number back', async () => { const r = await call('POST', `/api/groups/${encodeURIComponent(gid)}/members`, { participants: [OTHER] }); must(r.data.success, JSON.stringify(r.data)); await pause(2000); must((await memberIds()).some((i) => i.startsWith(OTHER)), 'not a member'); });
+  await check('rename the group and see the new name', async () => {
+    const newName = 'WDG live test renamed';
+    const r = await call('PUT', '/api/groups/' + encodeURIComponent(gid), { name: newName });
+    must(r.data.success, JSON.stringify(r.data)); await pause(2500);
+    const g = (await call('GET', '/api/groups/' + encodeURIComponent(gid))).data.group;
+    must((g.name || g.subject) === newName, 'name is still: ' + (g.name || g.subject)); return newName;
+  });
   await check('send a message and get its id back', async () => {
     const r = await call('POST', '/api/messages', { to: gid, text: 'live test: first message' });
     must(r.data.success, JSON.stringify(r.data)); must(r.data.messageId, 'messageId is empty'); firstId = r.data.messageId; return firstId;

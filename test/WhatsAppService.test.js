@@ -12,7 +12,7 @@ function serviceWith(responses = {}) {
     calls.push({ method, url, a, b });
     return { data: responses[`${method} ${url}`] ?? {} };
   };
-  wa._client = { get: reply('get'), post: reply('post'), put: reply('put'), delete: reply('delete') };
+  wa._client = { get: reply('get'), post: reply('post'), put: reply('put'), patch: reply('patch'), delete: reply('delete') };
   return { wa, calls };
 }
 
@@ -64,4 +64,17 @@ test('group calls use the expected Whapi paths', async () => {
     'get /groups',
     'put /messages/msg-1/reaction',
   ]);
+});
+
+test('updateGroup renames with `subject` (Whapi ignores `name`)', async () => {
+  const { wa, calls } = serviceWith();
+  await wa.updateGroup(GROUP, { subject: 'New name' });
+  assert.deepStrictEqual([calls[0].method, calls[0].url, calls[0].a], ['put', `/groups/${GROUP}`, { subject: 'New name' }]);
+});
+
+test('setWebhook subscribes to groups.put as well, so member changes arrive', async () => {
+  const { wa, calls } = serviceWith();
+  await wa.setWebhook('https://example.com/webhook', ['messages', 'groups']);
+  const events = calls[0].a.webhooks[0].events.map((e) => `${e.type}.${e.method}`);
+  assert.deepStrictEqual(events, ['messages.post', 'messages.patch', 'groups.post', 'groups.patch', 'groups.put']);
 });
